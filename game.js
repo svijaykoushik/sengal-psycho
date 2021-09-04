@@ -4,7 +4,7 @@
 var canvas = document.getElementById("myCanvas"),
   ctx = canvas.getContext("2d"),
   colour = "#0095DD",
-  font = "16px VT323",
+  font = "20px VT323",
   ballRadius = 10,
   x = canvas.width / 2,
   y = canvas.height - 30,
@@ -15,9 +15,8 @@ var canvas = document.getElementById("myCanvas"),
   paddleX = (canvas.width - paddleWidth) / 2,
   rightPressed = false,
   leftPressed = false,
-  spacePressed = false,
   brickRowCount = 5,
-  brickColumnCount = 3,
+brickColumnCount = 3,
   brickWidth = 75,
   brickHeight = 20,
   brickPadding = 10,
@@ -28,7 +27,7 @@ var canvas = document.getElementById("myCanvas"),
   gameOver = false,
   win = false,
   destroyCount = 0,
-frameId = 0;
+  frameId = 0;
 
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
@@ -48,7 +47,9 @@ function keyUpHandler(e) {
   } else if (e.keyCode == 37) {
     leftPressed = false;
   } else if (e.keyCode == 32) {
-    spacePressed = true;
+    const spacePressedEvt = new CustomEvent("onSpacePressed");
+    console.log("keyUpHandler(): \"onSpacePressed\" event dispatched");
+    canvas.dispatchEvent(spacePressedEvt);
   }
 }
 
@@ -255,7 +256,7 @@ class StartScreen {
     this.title = new Text(canvas.width / 2, (canvas.height / 2) - 10, "Sengal Psycho");
     this.instruction = new Text(canvas.width / 2, canvas.height - 50, "Press space to start");
 
-    this.title.font = "40px VT323";
+    this.title.font = "60px VT323";
     this.title.alignment = "center";
     this.instruction.font = "20px VT323";
     this.instruction.alignment = "center";
@@ -273,10 +274,10 @@ class PauseScreen {
     this.score = new Text(canvas.width / 2, canvas.height / 2 + 30, "Score: " + score);
     this.instruction = new Text(canvas.width / 2, canvas.height - 50, "Press space to resume");
 
-    this.title.font = "40px VT323";
+    this.title.font = "60px VT323";
     this.title.alignment = "center";
     this.score.alignment = "center";
-    this.instruction.font = "20px VT323";
+    this.instruction.font = "24px VT323";
     this.instruction.alignment = "center";
   }
 
@@ -297,7 +298,7 @@ class EndScreen {
     this.score = new Text(canvas.width / 2, canvas.height / 2 + 30, "Score: " + score);
     this.instruction = new Text(canvas.width / 2, canvas.height - 50, "Press space to quit");
 
-    this.title.font = "40px VT323";
+    this.title.font = "60px VT323";
     this.title.alignment = "center";
     this.score.alignment = "center";
     this.instruction.font = "20px VT323";
@@ -324,12 +325,17 @@ class EndScreen {
  * Game Play
  */
 class PlayScreen {
-  constructor() {
+  constructor(world) {
     this.ball = new Ball(x, y, ballRadius);
     this.paddle = new Paddle(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
     this.level = new Level(brickRowCount, brickColumnCount, brickWidth, brickHeight, brickOffsetTop, brickOffsetLeft, brickPadding);
     this.score = new Text(8, 20, "Score: ");
-    this.lives = new Text(canvas.width - 65, 20, "Lives: ");
+    this.lives = new Text(canvas.width - 70, 20, "Lives: ");
+    this.world = world;
+
+    canvas.addEventListener("onPlayerLoose", e => this.onPlayerLooseHandler(e), false);
+    canvas.addEventListener("onPlayerWin", e => this.onPlayerWinHandler(e), false);
+    canvas.addEventListener("onBallCollidesBrick", e => this.ballCollidesBrickHandler(e), false);
   }
 
   draw() {
@@ -345,15 +351,13 @@ class PlayScreen {
       var b = this.level.bricks[i];
       if (b.status == 1) {
         if (this.ball.x > b.x && this.ball.x < b.x + b.width && this.ball.y > b.y && this.ball.y < b.y + b.height) {
-          dy = -dy;
-          b.destroy();
-          score++;
-          destroyCount++;
-          if (destroyCount == brickRowCount * brickColumnCount) {
-            gameOver = true;
-            win = true;
-            this.resetLevel();
-          }
+        /* creating and dispatching custom event*/
+          const ballCollidesBrick = new CustomEvent("onBallCollidesBrick", {
+            detail: {
+              brick: b
+            }
+          });
+          canvas.dispatchEvent(ballCollidesBrick);
         }
       }
     }
@@ -372,10 +376,16 @@ class PlayScreen {
       } else {
         lives--;
         if (!lives) {
-          gameOver = true;
-          win = false;
-          this.resetLevel();
-          lives = 3;
+          /* creating and dispatching custom event*/
+          const onPlayerLooseEvt = new CustomEvent("onPlayerLoose", {
+            detail: {
+              eventName: "onPlayerLoose",
+              message: "Ha! Ha! You Loose!"
+            }
+          });
+          console.log("PlayScreen.update(): \"onPlayerLoose\" Event dispatched");
+          canvas.dispatchEvent(onPlayerLooseEvt);
+
         } else {
           this.ball.x = canvas.width / 2;
           this.ball.y = canvas.height - 30;
@@ -410,17 +420,46 @@ class PlayScreen {
     this.paddle.x = (canvas.width - paddleWidth) / 2;
     destroyCount = 0;
   }
+
+  onPlayerLooseHandler(e) {
+    console.log("PlayScreen.onPlayerLooseHandler(): \"" + e.detail.eventName + "\" Event handled");
+    win = false;
+    this.resetLevel();
+    lives = 3;
+  }
+
+  onPlayerWinHandler(e) {
+    console.log("PlayScreen.onWinningHangler(): \"onWinning\" Event handled");
+    win = true;
+    this.resetLevel();
+  }
+
+  ballCollidesBrickHandler(e) {
+  //console.log("PlayScreen.ballCollidesBrickHandle(): \"onballCollidesBrick\" Event handler");
+    dy = -dy;
+    e.detail.brick.destroy();
+    score++;
+    destroyCount++;
+    if (destroyCount == brickRowCount * brickColumnCount) {
+      const onPlayerWinEvt = new CustomEvent("onPlayerWin", {
+        detail: {
+          message: "Congratulations! YOU WON"
+        }
+      });
+      console.log("PlayScreen.ballCollidesBrickHandle(): \"onPlayerWin\" Event dispatched");
+      canvas.dispatchEvent(onPlayerWinEvt);
+    }
+  }
 }
 
 /****************************************************/
 /*************END GAME STATES***********************/
 /**************************************************/
-
 class World {
   constructor() {
     this.stateManager = new StateManager();
     this.beginMode = new StartScreen();
-    this.playMode = new PlayScreen();
+    this.playMode = new PlayScreen(this);
     this.pauseMode = new PauseScreen();
     this.endMode = new EndScreen();
 
@@ -430,6 +469,11 @@ class World {
     this.stateManager.addState("End", this.endMode);
 
     this.stateManager.StartState = "Open";
+
+
+    canvas.addEventListener("onPlayerWin", e => this.onPlayerWinHandler(e), false);
+    canvas.addEventListener("onPlayerLoose", e => this.onPlayerLooseHandler(e), false);
+    canvas.addEventListener("onSpacePressed", e => this.spacePressedHandler(), false);
   }
 
   draw() {
@@ -437,28 +481,6 @@ class World {
   }
 
   update() {
-    if (spacePressed) {
-      console.log("World.update(): The current state is " + this.stateManager.CurrentState.name);
-      switch (this.stateManager.CurrentState.name) {
-        case "Open":
-          this.stateManager.makeTransition("Play");
-          break;
-        case "Play":
-          this.stateManager.makeTransition("Paused");
-          break;
-        case "Paused":
-          this.stateManager.makeTransition("Play");
-          break;
-        case "End":
-          this.stateManager.makeTransition("Open");
-          break;
-        default:
-          this.stateManager.makeTransition("Open");
-          break;
-      }
-      spacePressed = false;
-    }
-
     if ("update" in this.stateManager.CurrentState.obj) {
       this.stateManager.CurrentState.obj.update();
     }
@@ -466,11 +488,40 @@ class World {
     if (!document.hasFocus() && this.stateManager.CurrentState.name == "Play") {
       this.stateManager.makeTransition("Paused");
     }
+  }
 
-    if (gameOver) {
-      this.stateManager.makeTransition("End");
-      gameOver = false;
+  onPlayerWinHandler(e) {
+    console.log("World.onWinningHangler(): \"onWinning\" Event handled");
+    console.log("World.onWinningHangler(): " + e.detail.message);
+    this.stateManager.makeTransition("End");
+  }
+
+  onPlayerLooseHandler(e) {
+    console.log("World.onWinningHangler(): \"onWinning\" Event handled");
+    console.log("World.onWinningHangler(): " + e.detail.message);
+    this.stateManager.makeTransition("End");
+  }
+
+  spacePressedHandler() {
+    console.log("World.spacePressedHandler(): The current state is " + this.stateManager.CurrentState.name);
+    switch (this.stateManager.CurrentState.name) {
+      case "Open":
+        this.stateManager.makeTransition("Play");
+        break;
+      case "Play":
+        this.stateManager.makeTransition("Paused");
+        break;
+      case "Paused":
+        this.stateManager.makeTransition("Play");
+        break;
+      case "End":
+        this.stateManager.makeTransition("Open");
+        break;
+      default:
+        this.stateManager.makeTransition("Open");
+        break;
     }
+    console.log("World.spacePressedHandler(): The updated current state is " + this.stateManager.CurrentState.name);
   }
 }
 
@@ -487,4 +538,3 @@ function renderFrame() {
 }
 
 renderFrame();
-
