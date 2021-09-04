@@ -1,7 +1,7 @@
 # sengal-psycho
 A breakout clone in javascript
 
-## Notes (0.5.0)
+## Notes (0.6.0)
 
 * Improved collision Detection
 
