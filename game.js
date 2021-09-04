@@ -5,12 +5,12 @@ var canvas = document.getElementById("myCanvas"),
   ctx = canvas.getContext("2d"),
   colour = "#0095DD",
   font = "20px VT323",
-  ballRadius = 10,
+  ballRadius = 7,
   x = canvas.width / 2,
   y = canvas.height - 30,
   dx = 2,
   dy = -2,
-  paddleHeight = 10,
+  paddleHeight = 7,
   paddleWidth = 75,
   paddleX = (canvas.width - paddleWidth) / 2,
   rightPressed = false,
@@ -19,15 +19,15 @@ var canvas = document.getElementById("myCanvas"),
   brickColumnCount = 3,
   brickWidth = 75,
   brickHeight = 20,
-  brickPadding = 10,
+  brickPadding = 2,
   brickOffsetTop = 30,
-  brickOffsetLeft = 30,
+  brickOffsetLeft = 15,
   score = 0,
   lives = 3,
   gameOver = false,
   win = false,
   destroyCount = 0,
-  frameId = 0;
+  lifeCount = 0;
 
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
@@ -175,18 +175,19 @@ class Paddle {
  * Brick
  */
 class Brick {
-  constructor(x, y, width, height) {
+  constructor(x, y, width, height, colour) {
     this.x = x;
     this.y = y;
     this.width = width;
     this.height = height;
     this.status = 1;
+    this.colour = colour
   }
 
   draw() {
     ctx.beginPath();
     ctx.rect(this.x, this.y, this.width, this.height);
-    ctx.fillStyle = colour;
+    ctx.fillStyle = this.colour;
     ctx.fill();
     ctx.closePath();
   }
@@ -201,31 +202,95 @@ class Brick {
 }
 
 /**
+ * Unbreakable Brick
+ */
+class UnbreakableBrick extends Brick {
+  constructor(x, y, width, height) {
+    super(x, y, width, height);
+    this.status = -1;
+    this.colour = "#de9400"; //orange
+  }
+
+  draw() {
+    ctx.beginPath();
+    ctx.rect(this.x, this.y, this.width, this.height);
+    ctx.fillStyle = this.colour;
+    ctx.fill();
+    ctx.rect(this.x + 2.5, this.y + 2.5, this.width - 5, this.height - 5);
+    ctx.strokeStyle = "#eee";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.closePath();
+  }
+}
+
+/**
  * Level
  **/
 class Level {
-  constructor(rowCount, columnCount, brickWidth, brickHeight, topOffset, leftOffset, padding) {
+  constructor(tileData, topOffset, leftOffset, padding, width, height) {
+    //console.log("Level(" + tileData + ", " + topOffset + ", " + leftOffset + ", " + padding + ", " + width + ", " + height);
     this.bricks = [];
-    for (var c = 0; c < columnCount; c++) {
-      for (var r = 0; r < rowCount; r++) {
-        var brickX = (r * (brickWidth + padding)) + leftOffset;
-        var brickY = (c * (brickHeight + padding)) + topOffset;
-        this.bricks.push(new Brick(brickX, brickY, brickWidth, brickHeight));
+    this.lifeCount = 0;
+    this.columnCount = tileData.length;
+    this.rowCount = tileData[0].length;
+    brickWidth = (width / this.rowCount) - padding;
+    brickHeight = (height / this.columnCount) - padding;
+    /*brickWidth = width / this.rowCount;
+    brickHeight = height/ this.columnCount;*/
+    //console.log("Level.leftOffset/Level.rowCount= "+ofLeft);
+    for (var c = 0; c < this.columnCount; c++) {
+      for (var r = 0; r < this.rowCount; r++) {
+        if (tileData[c][r] != 0) {
+          var brickX = (r * (brickWidth + padding)) + leftOffset;
+          var brickY = (c * (brickHeight + padding)) + topOffset;
+          /*var brickX = (r * brickWidth) + leftOffset;
+          var brickY = (c * brickHeight) + topOffset;*/
+          if (tileData[c][r] == 1) {
+            this.bricks.push(new UnbreakableBrick(brickX, brickY, brickWidth, brickHeight))
+          } else if (tileData[c][r] > 1) {
+            var colour = "";
+            switch (tileData[c][r]) {
+              case 2:
+                colour = "#7600de";
+                break;
+              case 3:
+                colour = "#de0098";
+                break;
+              case 4:
+                colour = "#de0025";
+                break;
+              case 5:
+                colour = "#89de00";
+                break;
+              default:
+                colour = "#0095DD";
+            }
+            this.bricks.push(new Brick(brickX, brickY, brickWidth, brickHeight, colour));
+            this.lifeCount++;
+          }
+        }
       }
     }
   }
 
   draw() {
     for (var i = 0; i < this.bricks.length; i++) {
-      if (this.bricks[i].status == 1) {
+      if (this.bricks[i].status == 1 || this.bricks[i].status == -1) {
         this.bricks[i].draw();
       }
     }
   }
 
-  reset() {
+  get LifeCount() {
+    return this.lifeCount;
+  }
+
+  reviveLevel() {
     for (var i = 0; i < this.bricks.length; i++) {
-      this.bricks[i].revive();
+      if (this.bricks[i].status == 0) {
+        this.bricks[i].status = 1;
+      }
     }
   }
 }
@@ -266,12 +331,13 @@ class BrickParticles {
     this.speed = Helper.random(1, 10);
     this.friction = 0.95;
     this.gravity = 2;
-    this.red = colour.red;
+    /*this.red = colour.red;
     this.green = colour.green;
-    this.blue = colour.blue;
+    this.blue = colour.blue;*/
+    this.colour = colour;
     this.alpha = 1;
     this.decay = Helper.random(0.015, 0.03);
-    this.side = Helper.random(2, brickHeight / Math.sqrt(2));
+    this.side = Helper.random(1, 5);
   }
 
   draw(context) {
@@ -280,9 +346,15 @@ class BrickParticles {
     context.lineTo(this.x + this.side, this.y + this.side);
     context.lineTo(this.x, this.y + 2 * this.side);
     context.lineTo(this.x - this.side, this.y + this.side);
-    context.fillStyle = "rgba(" + this.red + "," + this.green + "," + this.blue + "," + this.alpha + ")";
+    //context.fillStyle = "rgba(" + this.red + "," + this.green + "," + this.blue + "," + this.alpha + ")";
+    context.fillStyle = this.colour;
     context.closePath();
+    //set the alpha value of the particle to global context
+    context.globalAlpha = this.alpha;
+
     context.fill();
+    // reset the global context  alpha to opaque to prevent other component drawings fade away
+    context.globalAlpha = 1;
   }
   update() {
     this.speed *= this.friction;
@@ -338,7 +410,7 @@ class Explosion {
 
 class StartScreen {
   constructor() {
-    this.title = new Text(canvas.width / 2, (canvas.height / 2) - 10, "Sengal Psycho");
+    this.title = new Text(canvas.width / 2, (canvas.height / 2) - 10, "Simple Breakout");
     this.instruction = new Text(canvas.width / 2, canvas.height - 50, "Press space to start");
 
     this.title.font = "60px VT323";
@@ -411,20 +483,28 @@ class EndScreen {
  */
 class PlayScreen {
   constructor() {
-    this.ball = new Ball(x, y, ballRadius);
-    this.paddle = new Paddle(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
-    this.level = new Level(brickRowCount, brickColumnCount, brickWidth, brickHeight, brickOffsetTop, brickOffsetLeft, brickPadding);
     this.score = new Text(8, 20, "Score: ");
     this.lives = new Text(canvas.width - 70, 20, "Lives: ");
     this.explosions = [];
+    this.levels = [];
+
+    for (var i = 0; i < levels.length; i++) {
+      var l = new Level(levels[i], brickOffsetTop, brickOffsetLeft, brickPadding, canvas.width - (2 * brickOffsetLeft), (canvas.height - brickOffsetTop) / 2);
+      this.levels.push(l);
+    }
+
+    this.ball = new Ball(x, y, ballRadius);
+    this.paddle = new Paddle(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+    this.currentLevel = 0;
 
     canvas.addEventListener("onPlayerLoose", e => this.onPlayerLooseHandler(e), false);
     canvas.addEventListener("onPlayerWin", e => this.onPlayerWinHandler(e), false);
     canvas.addEventListener("onBallCollidesBrick", e => this.ballCollidesBrickHandler(e), false);
+    canvas.addEventListener("onLevelComplete", e => this.levelCompleteHandler(), false);
   }
 
   draw() {
-    this.level.draw();
+    this.levels[this.currentLevel].draw();
     this.ball.draw();
     this.paddle.draw();
     this.score.draw();
@@ -432,9 +512,9 @@ class PlayScreen {
   }
 
   collisionDetection() {
-    for (var i = 0; i < this.level.bricks.length; i++) {
-      var b = this.level.bricks[i];
-      if (b.status == 1) {
+    for (var i = 0; i < this.levels[this.currentLevel].bricks.length; i++) {
+      var b = this.levels[this.currentLevel].bricks[i];
+      if (b.status == 1 || b.status == -1) {
         if (this.ball.x > b.x && this.ball.x < b.x + b.width && this.ball.y > b.y && this.ball.y < b.y + b.height) {
           /* creating and dispatching custom event*/
           const ballCollidesBrick = new CustomEvent("onBallCollidesBrick", {
@@ -507,20 +587,25 @@ class PlayScreen {
       dx = 0;
       dy = 0;
       if (this.explosions.length < 1) {
-       /* creating and dispatching custom event*/
-        const onPlayerWinEvt = new CustomEvent("onPlayerWin", {
-          detail: {
-            message: "Congratulations! YOU WON"
-          }
-        });
-        console.log("PlayScreen.update(): \"onPlayerWin\" Event dispatched");
-        canvas.dispatchEvent(onPlayerWinEvt);
+        /* creating and dispatching custom event*/
+        if (this.levels.length != 0) {
+          const lvlComplete = new CustomEvent("onLevelComplete");
+          console.log("PlayScreen.update(): \"onLevelComplete\" Event dispatched");
+          canvas.dispatchEvent(lvlComplete);
+        } else {
+          const onPlayerWinEvt = new CustomEvent("onPlayerWin", {
+            detail: {
+              message: "Congratulations! YOU WON"
+            }
+          });
+          console.log("PlayScreen.update(): \"onPlayerWin\" Event dispatched");
+          canvas.dispatchEvent(onPlayerWinEvt);
+        }
       }
     }
   }
 
   resetLevel() {
-    this.level.reset();
     this.ball.x = canvas.width / 2;
     this.ball.y = canvas.height - 30;
     dx = 3;
@@ -534,35 +619,60 @@ class PlayScreen {
     win = false;
     this.resetLevel();
     lives = 3;
+    this.currentLevel = 0;
+    score = 0;
+    this.reviveLevels();
   }
 
   onPlayerWinHandler(e) {
     console.log("PlayScreen.onWinningHangler(): \"onWinning\" Event handled");
-    //win = true;
+    this.currentLevel = 0;
     this.resetLevel();
+    this.reviveLevels();
   }
 
   ballCollidesBrickHandler(e) {
-    //console.log("PlayScreen.ballCollidesBrickHandle(): \"onballCollidesBrick\" Event handler");
-    this.explosions.push(new Explosion(e.detail.brick.x, e.detail.brick.y, colour));
+    //console.log("PlayScreen.ballCollidesBrickHandle(): e.detail.brick.colour" +e.detail.brick.colour);
     dy = -dy;
-    e.detail.brick.destroy();
-    score++;
-    destroyCount++;
+    if (e.detail.brick.status == 1) {
+      this.explosions.push(new Explosion(e.detail.brick.x, e.detail.brick.y, e.detail.brick.colour));
+      e.detail.brick.destroy();
+      score++;
+      destroyCount++;
+    }
     if (this.isLevelClear()) {
       win = true;
-      /*const onPlayerWinEvt = new CustomEvent("onPlayerWin", {
+    }
+
+    console.log("Life Count: " + this.levels[this.currentLevel].LifeCount + " & Destroy Count: " + destroyCount);
+  }
+
+  isLevelClear() {
+    return destroyCount == this.levels[this.currentLevel].LifeCount;
+  }
+
+  levelCompleteHandler() {
+    if (this.currentLevel < this.levels.length) {
+      this.currentLevel++;
+      this.resetLevel();
+    } else {
+
+      /* creating and dispatching custom event*/
+      const onPlayerWinEvt = new CustomEvent("onPlayerWin", {
         detail: {
           message: "Congratulations! YOU WON"
         }
       });
-      console.log("PlayScreen.ballCollidesBrickHandle(): \"onPlayerWin\" Event dispatched");
-      canvas.dispatchEvent(onPlayerWinEvt);*/
+      console.log("PlayScreen.update(): \"onPlayerWin\" Event dispatched");
+      canvas.dispatchEvent(onPlayerWinEvt);
     }
   }
-  
-  isLevelClear(){
-   return destroyCount == brickRowCount * brickColumnCount;
+
+  reviveLevels() {
+    for (var i = 0; i < this.levels.length; i++) {
+      var l = this.levels[i];
+      l.reviveLevel();
+    }
   }
 }
 
