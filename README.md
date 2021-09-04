@@ -1,7 +1,11 @@
 # sengal-psycho
 A breakout clone in javascript
 
-## Notes (0.3.0)
+## Notes (0.4.0)
+
+* Used simple particle system
+	
+	A simple particle system and explosion physics to display bricks shattering effect on collision with ball
 
 * Used Custom DOM events
 

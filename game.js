@@ -16,7 +16,7 @@ var canvas = document.getElementById("myCanvas"),
   rightPressed = false,
   leftPressed = false,
   brickRowCount = 5,
-brickColumnCount = 3,
+  brickColumnCount = 3,
   brickWidth = 75,
   brickHeight = 20,
   brickPadding = 10,
@@ -57,6 +57,14 @@ function mouseMoveHandler(e) {
   var relativeX = e.clientX - canvas.offsetLeft;
   if (relativeX > 0 && relativeX < canvas.width) {
     paddleX = relativeX - paddleWidth / 2;
+  }
+}
+/**
+ *Helper class
+ */
+class Helper {
+  static random(min, max) {
+    return Math.random() * (max - min) + min;
   }
 }
 
@@ -247,6 +255,83 @@ class Text {
   }
 }
 
+/**
+ *Brick Particles
+ */
+class BrickParticles {
+  constructor(x, y, colour) {
+    this.x = x;
+    this.y = y;
+    this.angle = Helper.random(0, Math.PI * 2); // choose an angle between 0 to 360
+    this.speed = Helper.random(1, 10);
+    this.friction = 0.95;
+    this.gravity = 2;
+    this.red = colour.red;
+    this.green = colour.green;
+    this.blue = colour.blue;
+    this.alpha = 1;
+    this.decay = Helper.random(0.015, 0.03);
+    this.side = Helper.random(2, brickHeight / Math.sqrt(2));
+  }
+
+  draw(context) {
+    context.beginPath();
+    context.moveTo(this.x, this.y);
+    context.lineTo(this.x + this.side, this.y + this.side);
+    context.lineTo(this.x, this.y + 2 * this.side);
+    context.lineTo(this.x - this.side, this.y + this.side);
+    context.fillStyle = "rgba(" + this.red + "," + this.green + "," + this.blue + "," + this.alpha + ")";
+    context.closePath();
+    context.fill();
+  }
+  update() {
+    this.speed *= this.friction;
+    this.x += Math.cos(this.angle) * this.speed;
+    this.y += Math.sin(this.angle) * this.speed + this.gravity;
+
+    this.alpha -= this.decay;
+  }
+}
+/**
+ * Particle Explosion system
+ */
+
+class Explosion {
+  constructor(x, y, colour) {
+    this.x = x;
+    this.y = y;
+    this.colour = colour;
+    this.particles = [];
+    this.particleCount = 30;
+    this.completed = false;
+    while (this.particleCount--) {
+      this.particles.push(new BrickParticles(this.x, this.y, this.colour));
+    }
+  }
+
+  draw(context) {
+    for (var i = 0; i < this.particles.length; i++) {
+      this.particles[i].draw(context);
+    }
+  }
+  update() {
+    for (var i = 0; i < this.particles.length; i++) {
+      this.particles[i].update();
+      if (this.particles[i].alpha <= this.particles[i].decay) {
+        this.particles.splice(i, 1);
+      }
+    }
+    if (this.particles.length == 0) {
+      this.completed = true;
+    }
+  }
+
+  get HasFaded() {
+    return this.completed;
+  }
+}
+
+
 /****************************************************/
 /*****************GAME STATES***********************/
 /**************************************************/
@@ -325,13 +410,13 @@ class EndScreen {
  * Game Play
  */
 class PlayScreen {
-  constructor(world) {
+  constructor() {
     this.ball = new Ball(x, y, ballRadius);
     this.paddle = new Paddle(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
     this.level = new Level(brickRowCount, brickColumnCount, brickWidth, brickHeight, brickOffsetTop, brickOffsetLeft, brickPadding);
     this.score = new Text(8, 20, "Score: ");
     this.lives = new Text(canvas.width - 70, 20, "Lives: ");
-    this.world = world;
+    this.explosions = [];
 
     canvas.addEventListener("onPlayerLoose", e => this.onPlayerLooseHandler(e), false);
     canvas.addEventListener("onPlayerWin", e => this.onPlayerWinHandler(e), false);
@@ -351,7 +436,7 @@ class PlayScreen {
       var b = this.level.bricks[i];
       if (b.status == 1) {
         if (this.ball.x > b.x && this.ball.x < b.x + b.width && this.ball.y > b.y && this.ball.y < b.y + b.height) {
-        /* creating and dispatching custom event*/
+          /* creating and dispatching custom event*/
           const ballCollidesBrick = new CustomEvent("onBallCollidesBrick", {
             detail: {
               brick: b
@@ -409,6 +494,29 @@ class PlayScreen {
     this.score.update("Score: " + score);
 
     this.lives.update("Lives: " + lives);
+
+    for (var i = 0; i < this.explosions.length; i++) {
+      this.explosions[i].draw(ctx);
+      this.explosions[i].update();
+
+      if (this.explosions[i].HasFaded) {
+        this.explosions.splice(i, 1);
+      }
+    }
+    if (this.isLevelClear()) {
+      dx = 0;
+      dy = 0;
+      if (this.explosions.length < 1) {
+       /* creating and dispatching custom event*/
+        const onPlayerWinEvt = new CustomEvent("onPlayerWin", {
+          detail: {
+            message: "Congratulations! YOU WON"
+          }
+        });
+        console.log("PlayScreen.update(): \"onPlayerWin\" Event dispatched");
+        canvas.dispatchEvent(onPlayerWinEvt);
+      }
+    }
   }
 
   resetLevel() {
@@ -430,25 +538,31 @@ class PlayScreen {
 
   onPlayerWinHandler(e) {
     console.log("PlayScreen.onWinningHangler(): \"onWinning\" Event handled");
-    win = true;
+    //win = true;
     this.resetLevel();
   }
 
   ballCollidesBrickHandler(e) {
-  //console.log("PlayScreen.ballCollidesBrickHandle(): \"onballCollidesBrick\" Event handler");
+    //console.log("PlayScreen.ballCollidesBrickHandle(): \"onballCollidesBrick\" Event handler");
+    this.explosions.push(new Explosion(e.detail.brick.x, e.detail.brick.y, colour));
     dy = -dy;
     e.detail.brick.destroy();
     score++;
     destroyCount++;
-    if (destroyCount == brickRowCount * brickColumnCount) {
-      const onPlayerWinEvt = new CustomEvent("onPlayerWin", {
+    if (this.isLevelClear()) {
+      win = true;
+      /*const onPlayerWinEvt = new CustomEvent("onPlayerWin", {
         detail: {
           message: "Congratulations! YOU WON"
         }
       });
       console.log("PlayScreen.ballCollidesBrickHandle(): \"onPlayerWin\" Event dispatched");
-      canvas.dispatchEvent(onPlayerWinEvt);
+      canvas.dispatchEvent(onPlayerWinEvt);*/
     }
+  }
+  
+  isLevelClear(){
+   return destroyCount == brickRowCount * brickColumnCount;
   }
 }
 
@@ -459,7 +573,7 @@ class World {
   constructor() {
     this.stateManager = new StateManager();
     this.beginMode = new StartScreen();
-    this.playMode = new PlayScreen(this);
+    this.playMode = new PlayScreen();
     this.pauseMode = new PauseScreen();
     this.endMode = new EndScreen();
 
