@@ -1,8 +1,13 @@
 # sengal-psycho
 A breakout clone in javascript
 
-## Notes
+## Notes (0.2.0)
 
+* Used State management for different game states
+
+	Game has the following states viz: Start state, Game play state, paused state, Win state and game over state 
+
+* Moved to Class based from functional programming
 * Used basic shapes for Game props
 
 	Used rectangle for bricks and paddle. And used circle for ball
