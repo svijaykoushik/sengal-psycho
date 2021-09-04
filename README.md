@@ -3,6 +3,11 @@ A breakout clone in javascript
 
 ## Notes (0.5.0)
 
+* Improved collision Detection
+
+	*[AABB]: Axis Aligned Bounding Box
+	Used AABB collision detection algorithm and optimized circle & Rectangle collision detection
+
 * Added level system for multiple levels
 * Used simple particle system
 	

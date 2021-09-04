@@ -66,6 +66,10 @@ class Helper {
   static random(min, max) {
     return Math.random() * (max - min) + min;
   }
+
+  static clamp(val, minVal, maxVal) {
+    return Math.max(minVal, Math.min(val, maxVal));
+  }
 }
 
 /**
@@ -124,26 +128,93 @@ class StateManager {
 }
 
 /**
+ * Vector 2d 
+ */
+class Vector {
+  constructor(x, y) {
+    this._x = x;
+    this._y = y;
+  }
+
+  get x() {
+    return this._x;
+  }
+
+  get y() {
+    return this._y;
+  }
+
+  get length() {
+    return Math.sqrt(this._x * this._x + this._y * this._y);
+  }
+
+  add(vector) {
+    return new Vector(this._x + vector.x, this._y + vector.y);
+  }
+
+  subract(vector) {
+    return new Vector(this._x - vector.x, this._y - vector.y);
+  }
+
+  divide(scalar) {
+    return new Vector(this._x / scalar, this._y / scalar);
+  }
+
+  dotProduct(vector) {
+    return this._x * vector.x + this._y * vector.y;
+  }
+
+  normalize() {
+    var mag = this.length,
+      normalizedVector = null;
+    if (mag > 0) {
+      normalizedVector = this.divide(mag);
+    }
+    return normalizedVector;
+  }
+
+  static clamp(val, min, max) {
+    var _x, _y;
+    _x = Math.max(min.x, Math.min(val.x, max.x));
+    _y = Math.max(min.y, Math.min(val.y, max.y));
+    return new Vector(_x, _y);
+  }
+}
+
+/**
+ * Cooridante Vector 2D
+ */
+class Coordinate extends Vector {
+  constructor(x, y) {
+    super(x, y)
+  }
+
+  distanceTo(coordinate) {
+    var xDifference = coordinate.x - this._x;
+    var yDifference = coordinate.y - this._y;
+    return Math.sqrt(xDifference * xDifference + yDifference * yDifference);
+  }
+}
+
+/**
  * Ball
  */
 class Ball {
-  constructor(x, y, radius) {
-    this.x = x;
-    this.y = y;
+  constructor(center, radius) {
+    this.center = center;
     this.r = radius;
   }
 
   draw() {
     ctx.beginPath();
-    ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    ctx.arc(this.center.x, this.center.y, this.r, 0, Math.PI * 2);
     ctx.fillStyle = colour;
     ctx.fill();
     ctx.closePath();
   }
 
-  move(dx, dy) {
-    this.x += dx;
-    this.y += dy;
+  move(velocity) {
+    this.center = this.center.add(velocity);
   }
 }
 
@@ -151,23 +222,22 @@ class Ball {
  * Paddle
  */
 class Paddle {
-  constructor(x, y, width, height) {
-    this.x = x;
-    this.y = y;
+  constructor(startCoordinate, width, height) {
+    this.start = startCoordinate;
     this.width = width;
     this.height = height;
   }
 
   draw() {
     ctx.beginPath();
-    ctx.rect(this.x, this.y, this.width, this.height);
+    ctx.rect(this.start.x, this.start.y, this.width, this.height);
     ctx.fillStyle = colour;
     ctx.fill();
     ctx.closePath();
   }
 
   move(paddleX) {
-    this.x = paddleX;
+    this.start = paddleX;
   }
 }
 
@@ -175,9 +245,8 @@ class Paddle {
  * Brick
  */
 class Brick {
-  constructor(x, y, width, height, colour) {
-    this.x = x;
-    this.y = y;
+  constructor(startCoordinate, width, height, colour) {
+    this.start = startCoordinate;
     this.width = width;
     this.height = height;
     this.status = 1;
@@ -186,7 +255,7 @@ class Brick {
 
   draw() {
     ctx.beginPath();
-    ctx.rect(this.x, this.y, this.width, this.height);
+    ctx.rect(this.start.x, this.start.y, this.width, this.height);
     ctx.fillStyle = this.colour;
     ctx.fill();
     ctx.closePath();
@@ -205,18 +274,18 @@ class Brick {
  * Unbreakable Brick
  */
 class UnbreakableBrick extends Brick {
-  constructor(x, y, width, height) {
-    super(x, y, width, height);
+  constructor(startCoordinate, width, height) {
+    super(startCoordinate, width, height);
     this.status = -1;
     this.colour = "#de9400"; //orange
   }
 
   draw() {
     ctx.beginPath();
-    ctx.rect(this.x, this.y, this.width, this.height);
+    ctx.rect(this.start.x, this.start.y, this.width, this.height);
     ctx.fillStyle = this.colour;
     ctx.fill();
-    ctx.rect(this.x + 2.5, this.y + 2.5, this.width - 5, this.height - 5);
+    ctx.rect(this.start.x + 2.5, this.start.y + 2.5, this.width - 5, this.height - 5);
     ctx.strokeStyle = "#eee";
     ctx.lineWidth = 1;
     ctx.stroke();
@@ -247,7 +316,7 @@ class Level {
           /*var brickX = (r * brickWidth) + leftOffset;
           var brickY = (c * brickHeight) + topOffset;*/
           if (tileData[c][r] == 1) {
-            this.bricks.push(new UnbreakableBrick(brickX, brickY, brickWidth, brickHeight))
+            this.bricks.push(new UnbreakableBrick(new Coordinate(brickX, brickY), brickWidth, brickHeight))
           } else if (tileData[c][r] > 1) {
             var colour = "";
             switch (tileData[c][r]) {
@@ -266,7 +335,7 @@ class Level {
               default:
                 colour = "#0095DD";
             }
-            this.bricks.push(new Brick(brickX, brickY, brickWidth, brickHeight, colour));
+            this.bricks.push(new Brick(new Coordinate(brickX, brickY), brickWidth, brickHeight, colour));
             this.lifeCount++;
           }
         }
@@ -299,9 +368,8 @@ class Level {
  * Text component in the game
  */
 class Text {
-  constructor(x, y, text) {
-    this.x = x;
-    this.y = y;
+  constructor(position, text) {
+    this.pos = position;
     this.text = text;
     this.font = font;
     this.alignment = "start";
@@ -312,7 +380,7 @@ class Text {
     ctx.textAlign = this.alignment;
     ctx.font = this.font;
     ctx.fillStyle = this.colour;
-    ctx.fillText(this.text, this.x, this.y);
+    ctx.fillText(this.text, this.pos.x, this.pos.y);
   }
 
   update(text) {
@@ -324,9 +392,8 @@ class Text {
  *Brick Particles
  */
 class BrickParticles {
-  constructor(x, y, colour) {
-    this.x = x;
-    this.y = y;
+  constructor(position, colour) {
+    this.pos = position;
     this.angle = Helper.random(0, Math.PI * 2); // choose an angle between 0 to 360
     this.speed = Helper.random(1, 10);
     this.friction = 0.95;
@@ -342,10 +409,10 @@ class BrickParticles {
 
   draw(context) {
     context.beginPath();
-    context.moveTo(this.x, this.y);
-    context.lineTo(this.x + this.side, this.y + this.side);
-    context.lineTo(this.x, this.y + 2 * this.side);
-    context.lineTo(this.x - this.side, this.y + this.side);
+    context.moveTo(this.pos.x, this.pos.y);
+    context.lineTo(this.pos.x + this.side, this.pos.y + this.side);
+    context.lineTo(this.pos.x, this.pos.y + 2 * this.side);
+    context.lineTo(this.pos.x - this.side, this.pos.y + this.side);
     //context.fillStyle = "rgba(" + this.red + "," + this.green + "," + this.blue + "," + this.alpha + ")";
     context.fillStyle = this.colour;
     context.closePath();
@@ -358,9 +425,11 @@ class BrickParticles {
   }
   update() {
     this.speed *= this.friction;
-    this.x += Math.cos(this.angle) * this.speed;
-    this.y += Math.sin(this.angle) * this.speed + this.gravity;
-
+    var x = Math.cos(this.angle) * this.speed;
+    var y = Math.sin(this.angle) * this.speed + this.gravity;
+    //console.log("BrickParticles.update(): before update position (" + this.pos.x +", "+ this.pos.y+")");
+    this.pos = this.pos.add(new Coordinate(x, y));
+    // console.log("BrickParticles.update(): position (" + this.pos.x +", "+ this.pos.y+")");
     this.alpha -= this.decay;
   }
 }
@@ -369,15 +438,14 @@ class BrickParticles {
  */
 
 class Explosion {
-  constructor(x, y, colour) {
-    this.x = x;
-    this.y = y;
+  constructor(position, colour) {
+    this.pos = position;
     this.colour = colour;
     this.particles = [];
     this.particleCount = 30;
     this.completed = false;
     while (this.particleCount--) {
-      this.particles.push(new BrickParticles(this.x, this.y, this.colour));
+      this.particles.push(new BrickParticles(this.pos, this.colour));
     }
   }
 
@@ -410,8 +478,8 @@ class Explosion {
 
 class StartScreen {
   constructor() {
-    this.title = new Text(canvas.width / 2, (canvas.height / 2) - 10, "Simple Breakout");
-    this.instruction = new Text(canvas.width / 2, canvas.height - 50, "Press space to start");
+    this.title = new Text(new Coordinate(canvas.width / 2, (canvas.height / 2) - 10), "Simple Breakout");
+    this.instruction = new Text(new Coordinate(canvas.width / 2, canvas.height - 50), "Press space to start");
 
     this.title.font = "60px VT323";
     this.title.alignment = "center";
@@ -427,9 +495,9 @@ class StartScreen {
 
 class PauseScreen {
   constructor() {
-    this.title = new Text(canvas.width / 2, (canvas.height / 2) - 10, "Paused!");
-    this.score = new Text(canvas.width / 2, canvas.height / 2 + 30, "Score: " + score);
-    this.instruction = new Text(canvas.width / 2, canvas.height - 50, "Press space to resume");
+    this.title = new Text(new Coordinate(canvas.width / 2, (canvas.height / 2) - 10), "Paused!");
+    this.score = new Text(new Coordinate(canvas.width / 2, canvas.height / 2 + 30), "Score: " + score);
+    this.instruction = new Text(new Coordinate(canvas.width / 2, canvas.height - 50), "Press space to resume");
 
     this.title.font = "60px VT323";
     this.title.alignment = "center";
@@ -451,9 +519,9 @@ class PauseScreen {
 
 class EndScreen {
   constructor() {
-    this.title = new Text(canvas.width / 2, 50, "Congratulations!");
-    this.score = new Text(canvas.width / 2, canvas.height / 2 + 30, "Score: " + score);
-    this.instruction = new Text(canvas.width / 2, canvas.height - 50, "Press space to quit");
+    this.title = new Text(new Coordinate(canvas.width / 2, 50), "Congratulations!");
+    this.score = new Text(new Coordinate(canvas.width / 2, canvas.height / 2 + 30), "Score: " + score);
+    this.instruction = new Text(new Coordinate(canvas.width / 2, canvas.height - 50), "Press space to quit");
 
     this.title.font = "60px VT323";
     this.title.alignment = "center";
@@ -483,8 +551,8 @@ class EndScreen {
  */
 class PlayScreen {
   constructor() {
-    this.score = new Text(8, 20, "Score: ");
-    this.lives = new Text(canvas.width - 70, 20, "Lives: ");
+    this.score = new Text(new Coordinate(8, 20), "Score: ");
+    this.lives = new Text(new Coordinate(canvas.width - 70, 20), "Lives: ");
     this.explosions = [];
     this.levels = [];
 
@@ -493,9 +561,16 @@ class PlayScreen {
       this.levels.push(l);
     }
 
-    this.ball = new Ball(x, y, ballRadius);
-    this.paddle = new Paddle(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+    this.ball = new Ball(new Coordinate(x, y), ballRadius);
+    this.paddle = new Paddle(new Coordinate(paddleX, canvas.height - paddleHeight), paddleWidth, paddleHeight);
     this.currentLevel = 0;
+
+    this.Direction = {
+      UP: 0,
+      LEFT: 1,
+      DOWN: 2,
+      RIGHT: 3
+    };
 
     canvas.addEventListener("onPlayerLoose", e => this.onPlayerLooseHandler(e), false);
     canvas.addEventListener("onPlayerWin", e => this.onPlayerWinHandler(e), false);
@@ -512,14 +587,18 @@ class PlayScreen {
   }
 
   collisionDetection() {
+    var b, distC, cornerDistance, xCollision, yCollision, cornerCollision, bCenter, CDTuple;
     for (var i = 0; i < this.levels[this.currentLevel].bricks.length; i++) {
-      var b = this.levels[this.currentLevel].bricks[i];
+      b = this.levels[this.currentLevel].bricks[i];
       if (b.status == 1 || b.status == -1) {
-        if (this.ball.x > b.x && this.ball.x < b.x + b.width && this.ball.y > b.y && this.ball.y < b.y + b.height) {
+        CDTuple = this.checkCollision(this.ball, b);
+        if (CDTuple.hasCollided) {
+
           /* creating and dispatching custom event*/
           const ballCollidesBrick = new CustomEvent("onBallCollidesBrick", {
             detail: {
-              brick: b
+              brick: b,
+              direction: CDTuple.direction
             }
           });
           canvas.dispatchEvent(ballCollidesBrick);
@@ -528,20 +607,76 @@ class PlayScreen {
     }
   }
 
+  checkCollision(circle, rectangle) {
+    var C, halfExtents, B, D, clampedVal, oppositeHalfExtents, P, _D, collisionDirection = -1,
+      tempStatus;
+    C = new Coordinate(circle.center.x, circle.center.y);
+    halfExtents = new Vector(rectangle.width / 2, rectangle.height / 2);
+    B = new Coordinate(rectangle.start.x + halfExtents.x, rectangle.start.y + halfExtents.y);
+    D = C.subract(B);
+    oppositeHalfExtents = new Vector(-rectangle.width / 2, -rectangle.height / 2)
+    clampedVal = Vector.clamp(D, oppositeHalfExtents, halfExtents);
+    P = B.add(clampedVal);
+    _D = P.subract(C);
+    tempStatus = _D.length < circle.r;
+    /**
+     * Determine direction of collision
+     */
+    if (tempStatus) {
+      collisionDirection = this.findDirectionOfCollision(_D);
+    }
+
+    return {
+      hasCollided: tempStatus,
+      direction: collisionDirection
+    };
+  }
+
+  findDirectionOfCollision(targetVector) {
+    /*
+     * Normalised array of vectors pointing to all
+     * four directions of 2D plane
+     */
+    var compass = [
+      new Vector(0, 1), //up
+      new Vector(1, 0), //left
+      new Vector(0, -1), //down
+      new Vector(-1, 0) //right
+    ];
+
+    var max = 0,
+      bestMatch = -1,
+      dotProduct = null,
+      normalizedTarget = targetVector.normalize();
+
+    if (normalizedTarget == null) {
+      return bestMatch;
+    }
+
+    for (var i = 0; i < compass.length; i++) {
+      dotProduct = normalizedTarget.dotProduct(compass[i]);
+      if (dotProduct > max) {
+        max = dotProduct;
+        bestMatch = i;
+      }
+    }
+    return bestMatch;
+  }
+
   update() {
     this.collisionDetection();
-    if (this.ball.x + dx > canvas.width - this.ball.r || this.ball.x + dx < this.ball.r) {
+    if (this.ball.center.x + dx > canvas.width - this.ball.r || this.ball.center.x + dx < this.ball.r) {
       dx = -dx;
     }
-    if (this.ball.y + dy < this.ball.r) {
+    if (this.ball.center.y + dy < this.ball.r) {
       dy = -dy;
-    } else if (this.ball.y + dy > canvas.height - this.ball.r) {
-      if (this.ball.x > this.paddle.x && this.ball.x < this.paddle.x + this.paddle.width) {
-        dy = -dy;
+    } else if (this.ball.center.y + dy > canvas.height - this.ball.r) {
+      if (this.ball.center.x > this.paddle.start.x && this.ball.center.x < this.paddle.start.x + this.paddle.width) {
+        dy = -Math.abs(dy);
       } else {
         lives--;
         if (!lives) {
-          /* creating and dispatching custom event*/
+          //creating and dispatching custom event
           const onPlayerLooseEvt = new CustomEvent("onPlayerLoose", {
             detail: {
               eventName: "onPlayerLoose",
@@ -552,24 +687,23 @@ class PlayScreen {
           canvas.dispatchEvent(onPlayerLooseEvt);
 
         } else {
-          this.ball.x = canvas.width / 2;
-          this.ball.y = canvas.height - 30;
+          this.ball.center = new Coordinate(canvas.width / 2, canvas.height - 30);
           dx = 3;
           dy = -3;
-          this.paddle.x = (canvas.width - paddleWidth) / 2;
+          this.paddle.start = new Coordinate((canvas.width - paddleWidth) / 2, this.paddle.start.y);
         }
       }
     }
 
-    if (rightPressed && this.paddle.x < canvas.width - this.paddle.width) {
+    if (rightPressed && this.paddle.start.x < canvas.width - this.paddle.width) {
       paddleX += 7;
-    } else if (leftPressed && this.paddle.x > 0) {
+    } else if (leftPressed && this.paddle.start.x > 0) {
       paddleX -= 7;
     }
 
-    this.paddle.move(paddleX);
+    this.paddle.move(new Vector(paddleX, this.paddle.start.y));
 
-    this.ball.move(dx, dy);
+    this.ball.move(new Vector(dx, dy));
 
     this.score.update("Score: " + score);
 
@@ -606,11 +740,10 @@ class PlayScreen {
   }
 
   resetLevel() {
-    this.ball.x = canvas.width / 2;
-    this.ball.y = canvas.height - 30;
+    this.ball.center = new Coordinate(canvas.width / 2, canvas.height - 30);
     dx = 3;
     dy = -3;
-    this.paddle.x = (canvas.width - paddleWidth) / 2;
+    this.paddle.start = new Coordinate((canvas.width - paddleWidth) / 2, this.paddle.start.y);
     destroyCount = 0;
   }
 
@@ -620,7 +753,7 @@ class PlayScreen {
     this.resetLevel();
     lives = 3;
     this.currentLevel = 0;
-    score = 0;
+    //score = 0;
     this.reviveLevels();
   }
 
@@ -632,11 +765,27 @@ class PlayScreen {
   }
 
   ballCollidesBrickHandler(e) {
-    //console.log("PlayScreen.ballCollidesBrickHandle(): e.detail.brick.colour" +e.detail.brick.colour);
-    dy = -dy;
-    if (e.detail.brick.status == 1) {
-      this.explosions.push(new Explosion(e.detail.brick.x, e.detail.brick.y, e.detail.brick.colour));
-      e.detail.brick.destroy();
+    //console.log("PlayScreen.ballCollidesBrickHandle(): e.detail.brick.colour" + e.detail.brick.colour);
+    var brick = e.detail.brick;
+    var direction = e.detail.direction;
+    /*Collision resolution*/
+    switch (direction) {
+      case this.Direction.UP:
+        dy = -Math.abs(dy);
+        break;
+      case this.Direction.RIGHT:
+        dx = Math.abs(dx);
+        break;
+      case this.Direction.DOWN:
+        dy = Math.abs(dy);
+        break;
+      case this.Direction.LEFT:
+        dx = -Math.abs(dx);
+        break;
+    }
+    if (brick.status == 1) {
+      this.explosions.push(new Explosion(new Coordinate(brick.start.x, brick.start.y), brick.colour));
+      brick.destroy();
       score++;
       destroyCount++;
     }
@@ -644,7 +793,7 @@ class PlayScreen {
       win = true;
     }
 
-    console.log("Life Count: " + this.levels[this.currentLevel].LifeCount + " & Destroy Count: " + destroyCount);
+    //console.log("Life Count: " + this.levels[this.currentLevel].LifeCount + " & Destroy Count: " + destroyCount);
   }
 
   isLevelClear() {
