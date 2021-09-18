@@ -1,7 +1,7 @@
 # sengal-psycho
 A breakout clone in javascript
 
-## Notes (0.6.1)
+## Notes (0.6.2)
 
 * Moved to TypeScript
 
