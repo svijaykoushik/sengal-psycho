@@ -1,13 +1,15 @@
 import { Text } from "../game-objects/text";
 import { globals } from "../globals";
 import { Coordinate } from "../Math/coordinate";
+import { StateBase } from "./StateBase";
 
 
-export class StartScreen {
+export class StartScreen extends StateBase {
     private title: Text;
     private instruction: Text;
 
     constructor() {
+        super();
         this.title = new Text(new Coordinate(globals.canvas.width / 2, (globals.canvas.height / 2) - 10), "Sengal Psycho");
         this.instruction = new Text(new Coordinate(globals.canvas.width / 2, globals.canvas.height - 50), "Press space to start");
 
@@ -21,4 +23,6 @@ export class StartScreen {
         this.title.draw(ctx);
         this.instruction.draw(ctx);
     }
+
+    update() { }
 }

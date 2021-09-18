@@ -1,3 +1,5 @@
+import { StateBase } from "./game-states/StateBase";
+
 /**
  * Simple state manager
  */
@@ -13,7 +15,7 @@ export class StateManager {
         this.endState = null;
     }
 
-    addState(name: string, stateObj: any) {
+    addState(name: string, stateObj: StateBase) {
         if (!(name in this.states)) {
             this.states[name] = {
                 name: name,

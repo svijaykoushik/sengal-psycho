@@ -7,13 +7,13 @@ import { globals } from "../globals";
 import { Coordinate } from "../Math/coordinate";
 import { Vector } from "../Math/vector";
 import { Text } from "../game-objects/text";
-import { levels as Levels } from "../levels";
+import { StateBase } from "./StateBase";
 
 
 /**
  * Game Play
  */
-export class PlayScreen {
+export class PlayScreen extends StateBase {
     private score: Text;
     private lives: Text;
     private explosions: Explosion[];
@@ -23,13 +23,14 @@ export class PlayScreen {
     private currentLevel: number;
     private Direction: { [key: string]: number }
     constructor() {
+        super();
         this.score = new Text(new Coordinate(8, 20), "Score: ");
         this.lives = new Text(new Coordinate(globals.canvas.width - 70, 20), "Lives: ");
         this.explosions = [];
         this.levels = [];
 
-        for (var i = 0; i < Levels.length; i++) {
-            var l = new Level(Levels[i], globals.brickOffsetTop, globals.brickOffsetLeft, globals.brickPadding, globals.canvas.width - (2 * globals.brickOffsetLeft), (globals.canvas.height - globals.brickOffsetTop) / 2);
+        for (var i = 0; i < globals.levelLayouts.length; i++) {
+            var l = new Level(globals.levelLayouts[i], globals.brickOffsetTop, globals.brickOffsetLeft, globals.brickPadding, globals.canvas.width - (2 * globals.brickOffsetLeft), (globals.canvas.height - globals.brickOffsetTop) / 2);
             this.levels.push(l);
         }
 

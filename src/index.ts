@@ -8,19 +8,23 @@ document.addEventListener("keyup", keyUpHandler, false);
 document.addEventListener("mousemove", mouseMoveHandler, false);
 
 function keyDownHandler(e: KeyboardEvent) {
-    if (e.keyCode == 39) {
+    if (e.code === "ArrowRight") {
         globals.rightPressed = true;
-    } else if (e.keyCode == 37) {
+    } else if (e.code === "ArrowLeft") {
         globals.leftPressed = true;
     }
 }
 
 function keyUpHandler(e: KeyboardEvent) {
-    if (e.keyCode == 39) {
+    if (e.code === "ArrowRight") {
         globals.rightPressed = false;
-    } else if (e.keyCode == 37) {
+    } else if (e.code === "ArrowLeft") {
         globals.leftPressed = false;
-    } else if (e.keyCode == 32) {
+    } else if (
+        e.code === " " ||
+        e.code === "Spacebar" ||
+        e.code === "Space"
+    ) {
         const spacePressedEvt = new CustomEvent("onSpacePressed");
         console.log("keyUpHandler(): \"onSpacePressed\" event dispatched");
         globals.canvas.dispatchEvent(spacePressedEvt);

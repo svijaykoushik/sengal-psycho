@@ -1,17 +1,19 @@
 import { Coordinate } from "../Math/coordinate";
 import { globals } from "../globals";
 import { Text } from "../game-objects/text";
+import { StateBase } from "./StateBase";
 
 
-export class EndScreen {
+export class EndScreen extends StateBase {
     private title: Text;
     private score: Text;
     private instruction: Text;
 
-    constructor(canvas: HTMLCanvasElement) {
-        this.title = new Text(new Coordinate(canvas.width / 2, 50), "Congratulations!");
-        this.score = new Text(new Coordinate(canvas.width / 2, canvas.height / 2 + 30), "Score: " + globals.score);
-        this.instruction = new Text(new Coordinate(canvas.width / 2, canvas.height - 50), "Press space to quit");
+    constructor() {
+        super();
+        this.title = new Text(new Coordinate(globals.canvas.width / 2, 50), "Congratulations!");
+        this.score = new Text(new Coordinate(globals.canvas.width / 2, globals.canvas.height / 2 + 30), "Score: " + globals.score);
+        this.instruction = new Text(new Coordinate(globals.canvas.width / 2, globals.canvas.height - 50), "Press space to quit");
 
         this.title.font = "60px VT323";
         this.title.alignment = "center";

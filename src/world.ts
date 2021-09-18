@@ -16,8 +16,8 @@ export class World {
         this.stateManager = new StateManager();
         this.beginMode = new StartScreen();
         this.playMode = new PlayScreen();
-        this.pauseMode = new PauseScreen(canvas);
-        this.endMode = new EndScreen(canvas);
+        this.pauseMode = new PauseScreen();
+        this.endMode = new EndScreen();
 
         this.stateManager.addState("Open", this.beginMode);
         this.stateManager.addState("Play", this.playMode);
