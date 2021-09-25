@@ -21,7 +21,6 @@ export class PlayScreen extends StateBase {
     private ball: Ball;
     private paddle: Paddle;
     private currentLevel: number;
-    private Direction: { [key: string]: number }
     constructor() {
         super();
         this.score = new Text(new Coordinate(8, 20), "Score: ");
@@ -38,17 +37,11 @@ export class PlayScreen extends StateBase {
         this.paddle = new Paddle(new Coordinate(globals.paddleX, globals.canvas.height - globals.paddleHeight), globals.paddleWidth, globals.paddleHeight);
         this.currentLevel = 0;
 
-        this.Direction = {
-            UP: 0,
-            LEFT: 1,
-            DOWN: 2,
-            RIGHT: 3
-        };
-
         globals.canvas.addEventListener("onPlayerLoose", e => this.onPlayerLooseHandler(e as CustomEvent), false);
         globals.canvas.addEventListener("onPlayerWin", e => this.onPlayerWinHandler(e as CustomEvent), false);
         globals.canvas.addEventListener("onBallCollidesBrick", e => this.ballCollidesBrickHandler(e as CustomEvent), false);
         globals.canvas.addEventListener("onLevelComplete", e => this.levelCompleteHandler(), false);
+        globals.canvas.addEventListener("onBallCollidesPaddle", e => this.onBallCollidesPaddleHandler(e as CustomEvent), false);
     }
 
     draw(ctx: CanvasRenderingContext2D) {
@@ -60,7 +53,7 @@ export class PlayScreen extends StateBase {
     }
 
     collisionDetection() {
-        var b, distC, cornerDistance, xCollision, yCollision, cornerCollision, bCenter, CDTuple;
+        let b, CDTuple;
         for (var i = 0; i < this.levels[this.currentLevel].bricks.length; i++) {
             b = this.levels[this.currentLevel].bricks[i];
             if (b.status == 1 || b.status == -1) {
@@ -68,7 +61,7 @@ export class PlayScreen extends StateBase {
                 if (CDTuple.hasCollided) {
 
                     /* creating and dispatching custom event*/
-                    const ballCollidesBrick = new CustomEvent("onBallCollidesBrick", {
+                    const ballCollidesBrick = new CustomEvent<BallCollidesBrickEvent>("onBallCollidesBrick", {
                         detail: {
                             brick: b,
                             direction: CDTuple.direction
@@ -78,6 +71,15 @@ export class PlayScreen extends StateBase {
                 }
             }
         }
+        const paddleBallCDTuple = this.checkCollision(this.ball, this.paddle);
+        if (paddleBallCDTuple.hasCollided) {
+            const ballCollidesPaddle = new CustomEvent<BallCollidesPaddleEvent>("onBallCollidesPaddle", {
+                detail: {
+                    direction: paddleBallCDTuple.direction
+                }
+            });
+            globals.canvas.dispatchEvent(ballCollidesPaddle);
+        }
     }
 
     checkCollision(circle: Ball, rectangle: Paddle | Brick) {
@@ -86,11 +88,11 @@ export class PlayScreen extends StateBase {
         C = new Coordinate(circle.center.x, circle.center.y);
         halfExtents = new Vector(rectangle.width / 2, rectangle.height / 2);
         B = new Coordinate(rectangle.start.x + halfExtents.x, rectangle.start.y + halfExtents.y);
-        D = C.subract(B);
+        D = C.subtract(B);
         oppositeHalfExtents = new Vector(-rectangle.width / 2, -rectangle.height / 2)
         clampedVal = Vector.clamp(D, oppositeHalfExtents, halfExtents);
         P = B.add(clampedVal);
-        _D = P.subract(C);
+        _D = P.subtract(C);
         tempStatus = _D.length < circle.r;
         /**
          * Determine direction of collision
@@ -107,7 +109,7 @@ export class PlayScreen extends StateBase {
 
     findDirectionOfCollision(targetVector: Vector) {
         /*
-         * Normalised array of vectors pointing to all
+         * Normalized array of vectors pointing to all
          * four directions of 2D plane
          */
         var compass = [
@@ -144,27 +146,23 @@ export class PlayScreen extends StateBase {
         if (this.ball.center.y + globals.dy < this.ball.r) {
             globals.dy = -globals.dy;
         } else if (this.ball.center.y + globals.dy > globals.canvas.height - this.ball.r) {
-            if (this.ball.center.x > this.paddle.start.x && this.ball.center.x < this.paddle.start.x + this.paddle.width) {
-                globals.dy = -Math.abs(globals.dy);
-            } else {
-                globals.lives--;
-                if (!globals.lives) {
-                    //creating and dispatching custom event
-                    const onPlayerLooseEvt = new CustomEvent("onPlayerLoose", {
-                        detail: {
-                            eventName: "onPlayerLoose",
-                            message: "Ha! Ha! You Loose!"
-                        }
-                    });
-                    console.log("PlayScreen.update(): \"onPlayerLoose\" Event dispatched");
-                    globals.canvas.dispatchEvent(onPlayerLooseEvt);
+            globals.lives--;
+            if (!globals.lives) {
+                //creating and dispatching custom event
+                const onPlayerLooseEvt = new CustomEvent<PlayerLooseEvent>("onPlayerLoose", {
+                    detail: {
+                        eventName: "onPlayerLoose",
+                        message: "Ha! Ha! You Loose!"
+                    }
+                });
+                console.log("PlayScreen.update(): \"onPlayerLoose\" Event dispatched");
+                globals.canvas.dispatchEvent(onPlayerLooseEvt);
 
-                } else {
-                    this.ball.center = new Coordinate(globals.canvas.width / 2, globals.canvas.height - 30);
-                    globals.dx = 3;
-                    globals.dy = -3;
-                    this.paddle.start = new Coordinate((globals.canvas.width - globals.paddleWidth) / 2, this.paddle.start.y);
-                }
+            } else {
+                this.ball.center = new Coordinate(globals.canvas.width / 2, globals.canvas.height - 30);
+                globals.dx = 3;
+                globals.dy = -3;
+                this.paddle.start = new Coordinate((globals.canvas.width - globals.paddleWidth) / 2, this.paddle.start.y);
             }
         }
 
@@ -174,7 +172,7 @@ export class PlayScreen extends StateBase {
             globals.paddleX -= 7;
         }
 
-        this.paddle.move(new Vector(globals.paddleX, this.paddle.start.y));
+        this.paddle.move(new Coordinate(globals.paddleX, this.paddle.start.y));
 
         this.ball.move(new Vector(globals.dx, globals.dy));
 
@@ -237,22 +235,22 @@ export class PlayScreen extends StateBase {
         this.reviveLevels();
     }
 
-    ballCollidesBrickHandler(e: CustomEvent) {
+    ballCollidesBrickHandler(e: CustomEvent<BallCollidesBrickEvent>) {
         //console.log("PlayScreen.ballCollidesBrickHandle(): e.detail.brick.colour" + e.detail.brick.colour);
         var brick = e.detail.brick;
         var direction = e.detail.direction;
         /*Collision resolution*/
         switch (direction) {
-            case this.Direction.UP:
+            case Direction.UP:
                 globals.dy = -Math.abs(globals.dy);
                 break;
-            case this.Direction.RIGHT:
+            case Direction.RIGHT:
                 globals.dx = Math.abs(globals.dx);
                 break;
-            case this.Direction.DOWN:
+            case Direction.DOWN:
                 globals.dy = Math.abs(globals.dy);
                 break;
-            case this.Direction.LEFT:
+            case Direction.LEFT:
                 globals.dx = -Math.abs(globals.dx);
                 break;
         }
@@ -269,6 +267,23 @@ export class PlayScreen extends StateBase {
         //console.log("Life Count: " + this.levels[this.currentLevel].LifeCount + " & Destroy Count: " + destroyCount);
     }
 
+    onBallCollidesPaddleHandler(e: CustomEvent<BallCollidesPaddleEvent>): void {
+        switch (e.detail.direction) {
+            case Direction.UP:
+                globals.dy = -Math.abs(globals.dy);
+                break;
+            case Direction.RIGHT:
+                globals.dx = Math.abs(globals.dx);
+                break;
+            case Direction.DOWN:
+                globals.dy = Math.abs(globals.dy);
+                break;
+            case Direction.LEFT:
+                globals.dx = -Math.abs(globals.dx);
+                break;
+        }
+    }
+
     isLevelClear() {
         return globals.destroyCount == this.levels[this.currentLevel].LifeCount;
     }
@@ -280,7 +295,7 @@ export class PlayScreen extends StateBase {
         } else {
 
             /* creating and dispatching custom event*/
-            const onPlayerWinEvt = new CustomEvent("onPlayerWin", {
+            const onPlayerWinEvt = new CustomEvent<PlayerWinEvent>("onPlayerWin", {
                 detail: {
                     message: "Congratulations! YOU WON"
                 }
@@ -297,3 +312,27 @@ export class PlayScreen extends StateBase {
         }
     }
 }
+
+interface BallCollidesBrickEvent {
+    brick: Brick;
+    direction: number;
+}
+
+interface BallCollidesPaddleEvent {
+    direction: number;
+}
+
+interface PlayerWinEvent{
+    message: string;
+}
+
+interface PlayerLooseEvent extends PlayerWinEvent{
+    eventName: string;
+}
+
+enum Direction {
+    UP = 0,
+    LEFT = 1,
+    DOWN = 2,
+    RIGHT = 3
+};

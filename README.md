@@ -1,7 +1,11 @@
 # sengal-psycho
 A breakout clone in javascript
 
-## Notes (0.6.3)
+## Notes (0.7.0)
+
+* Improved collision Detection b/w paddle & ball
+
+	Used AABB collision detection algorithm
 
 * Moved to TypeScript
 

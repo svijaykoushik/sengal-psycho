@@ -28,7 +28,7 @@ export class Paddle {
         ctx.closePath();
     }
 
-    move(paddleX: Vector) {
-        this.start = paddleX as Coordinate;
+    move(paddleX: Coordinate) {
+        this.start = paddleX;
     }
 }

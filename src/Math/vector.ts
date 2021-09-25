@@ -27,7 +27,7 @@ export class Vector {
         return new Vector(this._x + vector.x, this._y + vector.y);
     }
 
-    subract(vector: Vector) {
+    subtract(vector: Vector) {
         return new Vector(this._x - vector.x, this._y - vector.y);
     }
 

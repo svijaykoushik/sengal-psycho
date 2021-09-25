@@ -28,7 +28,7 @@ let canvas = document.getElementById("myCanvas") as HTMLCanvasElement,
     win = false,
     destroyCount = 0,
     lifeCount = 0,
-    version= 'v0.6.3';
+    version= 'v0.7.0';
 const levelLayouts = [
     [
         [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
