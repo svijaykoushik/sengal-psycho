@@ -27,7 +27,8 @@ let canvas = document.getElementById("myCanvas") as HTMLCanvasElement,
     gameOver = false,
     win = false,
     destroyCount = 0,
-    lifeCount = 0;
+    lifeCount = 0,
+    version= 'v0.6.3';
 const levelLayouts = [
     [
         [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
@@ -98,5 +99,6 @@ export const globals = {
     win,
     destroyCount,
     lifeCount,
-    levelLayouts
+    levelLayouts,
+    version
 }
