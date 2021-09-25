@@ -16,7 +16,7 @@ export class Ball {
     draw(ctx: CanvasRenderingContext2D) {
         ctx.beginPath();
         ctx.arc(this.center.x, this.center.y, this.r, 0, Math.PI * 2);
-        ctx.fillStyle = globals.colour;
+        ctx.fillStyle = "#aa00ff";
         ctx.fill();
         ctx.closePath();
     }
