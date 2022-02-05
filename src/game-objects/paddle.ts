@@ -1,6 +1,6 @@
 import { globals } from "../globals";
-import { Coordinate } from "../Math/coordinate";
-import { Vector } from "../Math/vector";
+import { Coordinate } from "../Math";
+import { Vector } from "../Math";
 
 
 /**

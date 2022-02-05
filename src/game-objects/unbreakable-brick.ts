@@ -1,4 +1,4 @@
-import { Coordinate } from "../Math/coordinate";
+import { Coordinate } from "../Math";
 import { Brick } from "./brick";
 
 

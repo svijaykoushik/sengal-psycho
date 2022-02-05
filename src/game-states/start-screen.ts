@@ -1,6 +1,6 @@
 import { Text } from "../game-objects/text";
 import { globals } from "../globals";
-import { Coordinate } from "../Math/coordinate";
+import { Coordinate } from "../Math";
 import { StateBase } from "./StateBase";
 
 

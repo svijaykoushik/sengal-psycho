@@ -4,8 +4,8 @@ import { Explosion } from "../game-objects/explosion";
 import { Level } from "../game-objects/level";
 import { Paddle } from "../game-objects/paddle";
 import { globals } from "../globals";
-import { Coordinate } from "../Math/coordinate";
-import { Vector } from "../Math/vector";
+import { Coordinate } from "../Math";
+import { Vector } from "../Math";
 import { Text } from "../game-objects/text";
 import { StateBase } from "./StateBase";
 

@@ -1,4 +1,4 @@
-import { Coordinate } from "../Math/coordinate";
+import { Coordinate } from "../Math";
 import { globals } from "../globals";
 import { Text } from "../game-objects/text";
 import { StateBase } from "./StateBase";
