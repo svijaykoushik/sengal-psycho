@@ -1,6 +1,7 @@
 # sengal-psycho
 
-![Build work flow](https://github.com/github/docs/actions/workflows/webpack.yml/badge.svg)
+![Build work flow](https://github.com/svijaykoushik/sengal-psycho/actions/workflows/webpack.yml/badge.svg)
+![License](https://img.shields.io/github/license/svijaykoushik/sengal-psycho?label=License&logo=github)
 
 A  HTML5 breakout clone in typescript
 
