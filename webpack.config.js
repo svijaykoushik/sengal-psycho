@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   entry: './src/index.ts',
@@ -21,7 +22,7 @@ module.exports = {
     extensions: ['.ts', '.js'],
   },
   output: {
-    filename: 'game.js',
+    filename: 'game.[contenthash].js',
     path: path.resolve(__dirname, 'dist'),
     clean: true
   },
@@ -30,11 +31,11 @@ module.exports = {
     static: './dist'
   },
   plugins:[
+    new HtmlWebpackPlugin({
+      template: './index.html',
+    }),
     new CopyPlugin({
       patterns:[
-        {
-          from: './index.html'
-        },
         {
           from: './game.css'
         }
