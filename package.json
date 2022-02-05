@@ -1,6 +1,6 @@
 {
   "name": "sengal-psycho",
-  "version": "0.6.2",
+  "version": "0.7.1",
   "description": "A breakout clone in javascript",
   "main": "null",
   "scripts": {

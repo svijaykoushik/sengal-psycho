@@ -21,6 +21,11 @@ export class PlayScreen extends StateBase {
     private ball: Ball;
     private paddle: Paddle;
     private currentLevel: number;
+    private currentCombo: number;
+    private prevCombo: number;
+    private initialBallSpeed: Vector;
+    private maxBallSpeed: number;
+
     constructor() {
         super();
         this.score = new Text(new Coordinate(8, 20), "Score: ");
@@ -36,6 +41,10 @@ export class PlayScreen extends StateBase {
         this.ball = new Ball(new Coordinate(globals.x, globals.y), globals.ballRadius);
         this.paddle = new Paddle(new Coordinate(globals.paddleX, globals.canvas.height - globals.paddleHeight), globals.paddleWidth, globals.paddleHeight);
         this.currentLevel = 0;
+        this.currentCombo = 0;
+        this.prevCombo = this.currentCombo;
+        this.initialBallSpeed = new Vector(globals.dx, globals.dy);
+        this.maxBallSpeed = 4;
 
         globals.canvas.addEventListener("onPlayerLoose", e => this.onPlayerLooseHandler(e as CustomEvent), false);
         globals.canvas.addEventListener("onPlayerWin", e => this.onPlayerWinHandler(e as CustomEvent), false);
@@ -142,11 +151,14 @@ export class PlayScreen extends StateBase {
         this.collisionDetection();
         if (this.ball.center.x + globals.dx > globals.canvas.width - this.ball.r || this.ball.center.x + globals.dx < this.ball.r) {
             globals.dx = -globals.dx;
+            this.resetCombo();
         }
         if (this.ball.center.y + globals.dy < this.ball.r) {
             globals.dy = -globals.dy;
+            this.resetCombo();
         } else if (this.ball.center.y + globals.dy > globals.canvas.height - this.ball.r) {
             globals.lives--;
+            this.resetCombo();
             if (!globals.lives) {
                 //creating and dispatching custom event
                 const onPlayerLooseEvt = new CustomEvent<PlayerLooseEvent>("onPlayerLoose", {
@@ -160,8 +172,7 @@ export class PlayScreen extends StateBase {
 
             } else {
                 this.ball.center = new Coordinate(globals.canvas.width / 2, globals.canvas.height - 30);
-                globals.dx = 3;
-                globals.dy = -3;
+                this.resetBallSpeed();
                 this.paddle.start = new Coordinate((globals.canvas.width - globals.paddleWidth) / 2, this.paddle.start.y);
             }
         }
@@ -170,6 +181,22 @@ export class PlayScreen extends StateBase {
             globals.paddleX += 7;
         } else if (globals.leftPressed && this.paddle.start.x > 0) {
             globals.paddleX -= 7;
+        }
+
+        if (
+            this.currentCombo !== 0 &&
+            this.currentCombo % 4 == 0 &&
+            this.currentCombo > this.prevCombo &&
+            Math.abs(globals.dx) < this.maxBallSpeed &&
+            Math.abs(globals.dy) < this.maxBallSpeed
+        ) {
+            console.log('prevCombo',this.prevCombo);
+            console.log('Current combo',this.currentCombo);
+            console.log(`Current ball speed (${globals.dx}, ${globals.dy})`);
+            this.prevCombo = this.currentCombo;
+            globals.dx > 1 ? globals.dx++ : globals.dx--;
+            globals.dy > 1 ? globals.dy++ : globals.dy--;
+            console.log(`New ball speed (${globals.dx}, ${globals.dy})`);
         }
 
         this.paddle.move(new Coordinate(globals.paddleX, this.paddle.start.y));
@@ -208,12 +235,11 @@ export class PlayScreen extends StateBase {
                 }
             }
         }
+        // console.log('Combo', this.combo);
     }
 
     resetLevel() {
         this.ball.center = new Coordinate(globals.canvas.width / 2, globals.canvas.height - 30);
-        globals.dx = 3;
-        globals.dy = -3;
         this.paddle.start = new Coordinate((globals.canvas.width - globals.paddleWidth) / 2, this.paddle.start.y);
         globals.destroyCount = 0;
     }
@@ -263,6 +289,7 @@ export class PlayScreen extends StateBase {
         if (this.isLevelClear()) {
             globals.win = true;
         }
+        this.currentCombo++;
 
         //console.log("Life Count: " + this.levels[this.currentLevel].LifeCount + " & Destroy Count: " + destroyCount);
     }
@@ -282,6 +309,7 @@ export class PlayScreen extends StateBase {
                 globals.dx = -Math.abs(globals.dx);
                 break;
         }
+        this.resetCombo();
     }
 
     isLevelClear() {
@@ -311,6 +339,15 @@ export class PlayScreen extends StateBase {
             l.reviveLevel();
         }
     }
+
+    private resetCombo() {
+        this.currentCombo = 0;
+    }
+
+    private resetBallSpeed() {
+        globals.dx = this.initialBallSpeed.x;
+        globals.dy = this.initialBallSpeed.y;
+    }
 }
 
 interface BallCollidesBrickEvent {
@@ -322,11 +359,11 @@ interface BallCollidesPaddleEvent {
     direction: number;
 }
 
-interface PlayerWinEvent{
+interface PlayerWinEvent {
     message: string;
 }
 
-interface PlayerLooseEvent extends PlayerWinEvent{
+interface PlayerLooseEvent extends PlayerWinEvent {
     eventName: string;
 }
 

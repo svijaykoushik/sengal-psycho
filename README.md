@@ -5,7 +5,9 @@
 
 A  HTML5 breakout clone in typescript
 
-## Notes (0.7.0)
+## Notes (0.7.1)
+
+* Increase ball speed on brick break combo to make game-play experience better
 
 * Improved collision Detection b/w paddle & ball
 
