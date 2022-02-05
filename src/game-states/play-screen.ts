@@ -44,7 +44,7 @@ export class PlayScreen extends StateBase {
         this.currentCombo = 0;
         this.prevCombo = this.currentCombo;
         this.initialBallSpeed = new Vector(globals.dx, globals.dy);
-        this.maxBallSpeed = 5;
+        this.maxBallSpeed = 4;
 
         globals.canvas.addEventListener("onPlayerLoose", e => this.onPlayerLooseHandler(e as CustomEvent), false);
         globals.canvas.addEventListener("onPlayerWin", e => this.onPlayerWinHandler(e as CustomEvent), false);
