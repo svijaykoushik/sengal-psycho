@@ -6,7 +6,17 @@
 
 A  HTML5 breakout clone in typescript
 
-## Notes (0.7.1)
+## Notes (0.7.2)
+
+* Fixed paddle goes beyond bounds on mouse
+
+* added global config to store mouse coordinates inside canvas
+
+* Change ball direction when hit on paddle
+
+  * The ball changes direction based on whether it hits on paddle
+    hit on left side of paddle makes ball bounce only to left
+    hit on right side of paddle makes ball bounce only to right
 
 * Increase ball speed on brick break combo to make game-play experience better
 
