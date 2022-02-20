@@ -1,3 +1,5 @@
+import { Vector } from "./Math";
+
 /**
  * GLOBALS
  */
@@ -28,7 +30,8 @@ let canvas = document.getElementById("myCanvas") as HTMLCanvasElement,
     win = false,
     destroyCount = 0,
     lifeCount = 0,
-    version= 'v0.7.1';
+    version= 'v0.7.1',
+    mousePos = new Vector(0,0);
 const levelLayouts = [
     [
         [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
@@ -100,5 +103,6 @@ export const globals = {
     destroyCount,
     lifeCount,
     levelLayouts,
-    version
+    version,
+    mousePos
 }

@@ -32,10 +32,10 @@ function keyUpHandler(e: KeyboardEvent) {
 }
 
 function mouseMoveHandler(e: MouseEvent) {
-    var relativeX = e.clientX - globals.canvas.offsetLeft;
-    if (relativeX > 0 && relativeX < globals.canvas.width) {
-        globals.paddleX = relativeX - globals.paddleWidth / 2;
-    }
+    const relativeX = e.clientX - globals.canvas.offsetLeft;
+    const relativeY = e.clientY - globals.canvas.offsetTop;
+    globals.mousePos.x = relativeX;
+    globals.mousePos.y = relativeY;
 }
 
 /**

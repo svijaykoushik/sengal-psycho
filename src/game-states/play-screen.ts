@@ -181,6 +181,17 @@ export class PlayScreen extends StateBase {
             globals.paddleX += 7;
         } else if (globals.leftPressed && this.paddle.start.x > 0) {
             globals.paddleX -= 7;
+        } else {
+
+            if (globals.mousePos.x > 0 && globals.mousePos.x < globals.canvas.width) {
+                globals.paddleX = globals.mousePos.x - this.paddle.width / 2
+            }
+            if (globals.paddleX < 0) {
+                globals.paddleX = 0;
+            }
+            if (globals.paddleX + this.paddle.width > globals.canvas.width) {
+                globals.paddleX = globals.canvas.width - this.paddle.width;
+            }
         }
 
         if (

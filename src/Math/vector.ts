@@ -19,6 +19,14 @@ export class Vector {
         return this._y;
     }
 
+    set x(val) {
+        this._x = val;
+    }
+
+    set y(val) {
+        this._y = val;
+    }
+
     get length() {
         return Math.sqrt(this._x * this._x + this._y * this._y);
     }
