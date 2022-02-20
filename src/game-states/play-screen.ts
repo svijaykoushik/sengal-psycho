@@ -190,8 +190,8 @@ export class PlayScreen extends StateBase {
             Math.abs(globals.dx) < this.maxBallSpeed &&
             Math.abs(globals.dy) < this.maxBallSpeed
         ) {
-            console.log('prevCombo',this.prevCombo);
-            console.log('Current combo',this.currentCombo);
+            console.log('prevCombo', this.prevCombo);
+            console.log('Current combo', this.currentCombo);
             console.log(`Current ball speed (${globals.dx}, ${globals.dy})`);
             this.prevCombo = this.currentCombo;
             globals.dx > 1 ? globals.dx++ : globals.dx--;
@@ -310,6 +310,45 @@ export class PlayScreen extends StateBase {
                 break;
         }
         this.resetCombo();
+        const paddleEndX = this.paddle.start.x + this.paddle.width;
+        const paddleMiddleX = ((this.paddle.start.x + paddleEndX) / 2)
+
+        console.log('Paddle', {
+            x: this.paddle.start.x,
+            width: this.paddle.width,
+            middleX: paddleMiddleX
+        });
+
+        console.log('Ball', { x: this.ball.center.x });
+
+        let diff = 0;
+        const reboundFactor = 0.09;
+        if (this.ball.center.x < paddleMiddleX) {
+
+
+            /*when ball collides with the left part of the paddle
+              change the ball direction to left;
+            */
+            diff = paddleMiddleX - this.ball.center.x;
+            globals.dx = -Math.abs(reboundFactor * diff);
+            console.log("Ball hit left side of paddle", globals.dx);
+        } else if (this.ball.center.x > paddleMiddleX) {
+
+            /*when ball collides with the right part of the paddle
+              change the ball direction to right;
+            */
+            diff = this.ball.center.x - paddleMiddleX;
+            globals.dx = Math.abs(reboundFactor * diff);
+            console.log("Ball hit right side of paddle", globals.dx);
+        }
+        else {
+
+            /*when ball collides exactly in the middle of the paddle
+              change the ball direction to left or right randomly;
+            */
+            globals.dx = Math.round(Math.random()) > 0.5 ? Math.abs(globals.dx) : -Math.abs(globals.dx);
+            console.log("Ball hit middle of paddle", globals.dx);
+        }
     }
 
     isLevelClear() {
